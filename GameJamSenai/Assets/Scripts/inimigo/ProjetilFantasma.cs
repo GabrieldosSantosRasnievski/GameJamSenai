@@ -7,33 +7,45 @@ public class ProjetilFantasma : MonoBehaviour
     public float tempoVida = 5f;
     public int dano = 1;
 
+    [Header("Efeito de Debuff")]
+    public float multiplicadorLentidao = 0.5f; // 50% da velocidade normal
+    public float duracaoLentidao = 5f;          // 5 segundos de duração
+
     private Vector3 direcaoMovimento = Vector3.right;
 
-    void Start(){
-        // Busca o fantasma na cena para saber em qual fase o jogo está
+    void Start()
+    {
         ComportamentoFantasma fantasma = FindObjectOfType<ComportamentoFantasma>();
 
-        if(fantasma != null){
-            if(fantasma.faseAtual == 1){
-                direcaoMovimento = Vector3.right; // Direita na Fase 1
-            }else if(fantasma.faseAtual == 2){
-                direcaoMovimento = Vector3.left;  // Esquerda na Fase 2
-            }else if(fantasma.faseAtual >= 3){
-                direcaoMovimento = Vector3.down;  // BAIXO na Fase Final (Topo)
+        if (fantasma != null)
+        {
+            if (fantasma.faseAtual == 1)
+            {
+                direcaoMovimento = Vector3.right;
             }
-        }else{
-            // Fallback: se não achar o Boss, move na direção em que o ponto de disparo está apontando
-            direcaoMovimento = transform.right; 
+            else if (fantasma.faseAtual == 2)
+            {
+                direcaoMovimento = Vector3.left;
+            }
+            else if (fantasma.faseAtual >= 3)
+            {
+                direcaoMovimento = Vector3.down;
+            }
+        }
+        else
+        {
+            direcaoMovimento = transform.right;
         }
 
         StartCoroutine(MoverEDestruir());
     }
 
-    private IEnumerator MoverEDestruir(){
+    private IEnumerator MoverEDestruir()
+    {
         float tempoDecorrido = 0f;
 
-        while(tempoDecorrido < tempoVida){
-            // Move no espaço do mundo na direção definida pela fase
+        while (tempoDecorrido < tempoVida)
+        {
             transform.Translate(direcaoMovimento * velocidade * Time.deltaTime, Space.World);
             tempoDecorrido += Time.deltaTime;
             yield return null;
@@ -42,9 +54,26 @@ public class ProjetilFantasma : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private void OnTriggerEnter2D(Collider2D outro){
-        if(outro.CompareTag("Player")){
+    private void OnTriggerEnter2D(Collider2D outro)
+    {
+        if (outro.CompareTag("Player"))
+        {
+            // 1. Aplica o Dano via SendMessage (funciona em qualquer script de vida)
             outro.SendMessage("TomarDano", dano, SendMessageOptions.DontRequireReceiver);
+
+            // 2. Busca o script Movimento2D na hierarquia (objeto atual ou pai)
+            Movimento2D movimentoPlayer = outro.GetComponentInParent<Movimento2D>();
+
+            if (movimentoPlayer != null)
+            {
+                movimentoPlayer.AplicarLentidao(multiplicadorLentidao, duracaoLentidao);
+            }
+            else
+            {
+                // Fallback caso o script esteja em outro nível da hierarquia
+                outro.SendMessageUpwards("AplicarLentidaoNoPlayer", SendMessageOptions.DontRequireReceiver);
+            }
+
             Destroy(gameObject);
         }
     }

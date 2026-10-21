@@ -1,11 +1,18 @@
 using UnityEngine;
+using System.Collections;
 
 public class Movimento2D : MonoBehaviour
 {
     private Rigidbody2D rb;
     public float velocidadeMovimento = 8f;
+    private float velocidadeAtual;
     private float entradaHorizontal;
     private bool olhandoParaDireita = true;
+
+    [Header("Mecânica de Lentidão")]
+    public float multiplicadorLentidao = 0.5f; // Reduz a velocidade pela metade (50%)
+    public float duracaoLentidao = 5f;          // Duração de 5 segundos
+    private Coroutine corrotinaLentidao;
 
     public float forcaPulo = 12f;
     public Transform checadorChao;
@@ -30,56 +37,106 @@ public class Movimento2D : MonoBehaviour
     private float proximoAtaqueTempo = 0f;
     public int danoAtaque = 1;
 
-    void Start(){
+    void Start()
+    {
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = gravidadePadrao;
+        velocidadeAtual = velocidadeMovimento;
     }
 
-    void Update(){
+    void Update()
+    {
         entradaHorizontal = Input.GetAxisRaw("Horizontal");
 
         VerificarVirada();
 
-        if(checadorChao != null){
-            estaNoChao = Physics2D.OverlapBox(checadorChao.position, tamanhoChecadorChao, 0f, camadaChao);
+        // CHECAGEM RIGOROSA DE CHÃO
+        if (checadorChao != null)
+        {
+            if (rb.linearVelocity.y > 0.01f)
+            {
+                estaNoChao = false;
+            }
+            else
+            {
+                estaNoChao = Physics2D.OverlapBox(checadorChao.position, tamanhoChecadorChao, 0f, camadaChao);
+            }
         }
 
-        if(estaNoChao){
+        // CONTROLE DO COYOTE TIME
+        if (estaNoChao)
+        {
             coyoteTempoContador = tempoCoyote;
-        }else{
-            coyoteTempoContador -= Time.deltaTime;
+        }
+        else
+        {
+            if (rb.linearVelocity.y > 0.01f)
+            {
+                coyoteTempoContador = 0f;
+            }
+            else
+            {
+                coyoteTempoContador -= Time.deltaTime;
+            }
         }
 
         bool segurandoBaixo = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
         bool apertouPulo = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
 
-        if(apertouPulo && coyoteTempoContador > 0f && !segurandoBaixo){
+        if (apertouPulo && coyoteTempoContador > 0f && !segurandoBaixo && rb.linearVelocity.y <= 0.01f)
+        {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, forcaPulo);
             coyoteTempoContador = 0f;
+            estaNoChao = false;
         }
 
         AjustarGravidade();
 
-        if(Time.time >= proximoAtaqueTempo){
+        if (Time.time >= proximoAtaqueTempo)
+        {
             bool apertouAtaque = Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Z) || Input.GetKeyDown(KeyCode.J);
 
-            if(apertouAtaque){
+            if (apertouAtaque)
+            {
                 Atacar();
                 proximoAtaqueTempo = Time.time + tempoEntreAtaques;
             }
         }
     }
 
-    void FixedUpdate(){
-        rb.linearVelocity = new Vector2(entradaHorizontal * velocidadeMovimento, rb.linearVelocity.y);
+    void FixedUpdate()
+    {
+        rb.linearVelocity = new Vector2(entradaHorizontal * velocidadeAtual, rb.linearVelocity.y);
     }
 
-    void Atacar(){
-        if(pontoAtaque == null){
-            return;
-        }
+    public void AplicarLentidaoNoPlayer()
+    {
+        AplicarLentidao(multiplicadorLentidao, duracaoLentidao);
+    }
 
-        if(prefabAtaque != null){
+    public void AplicarLentidao(float mult, float duracao)
+    {
+        if (corrotinaLentidao != null)
+        {
+            StopCoroutine(corrotinaLentidao);
+        }
+        corrotinaLentidao = StartCoroutine(RotinaLentidao(mult, duracao));
+    }
+
+    private IEnumerator RotinaLentidao(float mult, float duracao)
+    {
+        velocidadeAtual = velocidadeMovimento * mult;
+        yield return new WaitForSeconds(duracao);
+        velocidadeAtual = velocidadeMovimento;
+        corrotinaLentidao = null;
+    }
+
+    void Atacar()
+    {
+        if (pontoAtaque == null) return;
+
+        if (prefabAtaque != null)
+        {
             GameObject ataqueCriado = Instantiate(prefabAtaque, pontoAtaque.position, transform.rotation);
             Vector3 escalaAtaque = ataqueCriado.transform.localScale;
             escalaAtaque.x = transform.localScale.x;
@@ -89,48 +146,59 @@ public class Movimento2D : MonoBehaviour
 
         Collider2D[] inimigosAtingidos = Physics2D.OverlapCircleAll(pontoAtaque.position, raioAtaque, camadaInimigos);
 
-        foreach(Collider2D inimigo in inimigosAtingidos){
+        foreach (Collider2D inimigo in inimigosAtingidos)
+        {
             inimigo.SendMessage("TomarDano", danoAtaque, SendMessageOptions.DontRequireReceiver);
         }
     }
 
-    void VerificarVirada(){
-        if(entradaHorizontal > 0 && !olhandoParaDireita){
-            Virar();
-        }else if(entradaHorizontal < 0 && olhandoParaDireita){
-            Virar();
-        }
+    void VerificarVirada()
+    {
+        if (entradaHorizontal > 0 && !olhandoParaDireita) Virar();
+        else if (entradaHorizontal < 0 && olhandoParaDireita) Virar();
     }
 
-    void Virar(){
+    void Virar()
+    {
         olhandoParaDireita = !olhandoParaDireita;
         Vector3 escala = transform.localScale;
         escala.x *= -1;
         transform.localScale = escala;
     }
 
-    void AjustarGravidade(){
+    void AjustarGravidade()
+    {
         bool segurandoBaixo = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
         bool segurandoPulo = Input.GetButton("Jump") || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
 
-        if(segurandoBaixo && !estaNoChao){
+        if (segurandoBaixo && !estaNoChao)
+        {
             rb.gravityScale = gravidadePadrao * multiplicadorQuedaRapida;
-        }else if(rb.linearVelocity.y < 0){
+        }
+        else if (rb.linearVelocity.y < 0)
+        {
             rb.gravityScale = gravidadePadrao * multiplicadorQueda;
-        }else if(rb.linearVelocity.y > 0 && !segurandoPulo){
+        }
+        else if (rb.linearVelocity.y > 0 && !segurandoPulo)
+        {
             rb.gravityScale = gravidadePadrao * multiplicadorPuloCurto;
-        }else{
+        }
+        else
+        {
             rb.gravityScale = gravidadePadrao;
         }
     }
 
-    private void OnDrawGizmosSelected(){
-        if(checadorChao != null){
+    private void OnDrawGizmosSelected()
+    {
+        if (checadorChao != null)
+        {
             Gizmos.color = Color.red;
             Gizmos.DrawWireCube(checadorChao.position, tamanhoChecadorChao);
         }
 
-        if(pontoAtaque != null){
+        if (pontoAtaque != null)
+        {
             Gizmos.color = Color.blue;
             Gizmos.DrawWireSphere(pontoAtaque.position, raioAtaque);
         }

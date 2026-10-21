@@ -23,14 +23,14 @@ public class ComportamentoFantasma : MonoBehaviour
     private bool seMaterializando = false;
 
     [Header("Pontos de Disparo por Direção/Fase")]
-    public Transform pontoDisparoFase1; // Aponta para a DIREITA
-    public Transform pontoDisparoFase2; // Aponta para a ESQUERDA
-    public Transform pontoDisparoBaixo; // Aponta para BAIXO (Fase Topo)
-    
+    public Transform pontoDisparoFase1;
+    public Transform pontoDisparoFase2;
+    public Transform pontoDisparoBaixo;
+
     [Header("Configurações da Chuva Sem Espaço (Fase Final)")]
     public float limiteArenaEsquerdaX = -8f;
     public float limiteArenaDireitaX = 8f;
-    public float espacamentoProjeteis = 1.2f; // Distância entre projéteis da chuva
+    public float espacamentoProjeteis = 1.2f;
     public float tempoEntreOndasChuva = 0.8f;
     private bool executandoChuvaFinal = false;
 
@@ -56,7 +56,7 @@ public class ComportamentoFantasma : MonoBehaviour
     public float multiplicadorNoAr = 2.5f;
     public float distanciaPertoImpossivel = 3f;
     public float multiplicadorPerto = 3.0f;
-    
+
     private bool estaSugando = false;
     private float temporizadorSucao = 0f;
 
@@ -70,13 +70,17 @@ public class ComportamentoFantasma : MonoBehaviour
     public float tempoTravaPreDash = 0.5f;
     private bool dandoDash = false;
 
+    [Header("Instabilidade Final")]
+    public float tempoEntreTeleportes = 0.15f;
+    private bool estaInstavel = false;
+
     [Header("Efeito de Luz (Trovoada)")]
     public GameObject painelPreto;
 
     [Header("Mecânica dos 3 Vasos")]
     public Transform vasoDireita;
     public VasoBoss scriptVasoDireita;
-    
+
     public Transform vasoEsquerda;
     public VasoBoss scriptVasoEsquerda;
 
@@ -87,83 +91,97 @@ public class ComportamentoFantasma : MonoBehaviour
     public VasoBoss scriptVasoAtual;
     public float tempoParaTrovoada = 30f;
     public float velocidadeCorridaVaso = 10f;
-    
+
     private bool estaFugindo = false;
     private bool escondidoNoVaso = false;
     private float temporizadorLuta = 0f;
     private Collider2D colisorFantasma;
 
-    void Awake(){
+    void Awake()
+    {
         colisorFantasma = GetComponent<Collider2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
-    void Start(){
+    void Start()
+    {
         tempoEntreTiros = tempoTiroFase1;
-        
+
         vasoAtual = vasoDireita;
         scriptVasoAtual = scriptVasoDireita;
 
-        if(textoMensagem != null) textoMensagem.gameObject.SetActive(false);
-        if(painelPreto != null) painelPreto.SetActive(false);
+        if (textoMensagem != null) textoMensagem.gameObject.SetActive(false);
+        if (painelPreto != null) painelPreto.SetActive(false);
 
         BuscarJogador();
     }
 
-    void BuscarJogador(){
-        if(jogador == null){
+    void BuscarJogador()
+    {
+        if (jogador == null)
+        {
             GameObject objJogador = GameObject.FindGameObjectWithTag("Player");
-            if(objJogador != null) jogador = objJogador.transform;
+            if (objJogador != null) jogador = objJogador.transform;
         }
 
-        if(jogador != null){
+        if (jogador != null)
+        {
             rbJogador = jogador.GetComponent<Rigidbody2D>();
             vidaJogadorScript = jogador.GetComponent<VidaJogador>();
         }
     }
 
-    void OnEnable(){
+    void OnEnable()
+    {
         escondidoNoVaso = false;
         estaFugindo = false;
         estaSugando = false;
         dandoDash = false;
         executandoChuvaFinal = false;
+        estaInstavel = false;
         temporizadorLuta = 0f;
         temporizadorSucao = 0f;
 
         posicaoBaseY = transform.position.y;
 
-        // Configuração dos Vasos por Fase
-        if(faseAtual == 1){
+        if (faseAtual == 1)
+        {
             tempoEntreTiros = tempoTiroFase1;
             vasoAtual = vasoDireita;
             scriptVasoAtual = scriptVasoDireita;
-        }else if(faseAtual == 2){
+        }
+        else if (faseAtual == 2)
+        {
             tempoEntreTiros = tempoTiroFase2;
             vasoAtual = vasoEsquerda;
             scriptVasoAtual = scriptVasoEsquerda;
-        }else if(faseAtual >= 3){
+        }
+        else if (faseAtual >= 3)
+        {
             vasoAtual = vasoTopo;
             scriptVasoAtual = scriptVasoTopo;
         }
 
-        if(colisorFantasma != null) colisorFantasma.enabled = true;
+        if (colisorFantasma != null) colisorFantasma.enabled = true;
 
         BuscarJogador();
         StartCoroutine(EfeitoMaterializacao());
     }
 
-    private IEnumerator EfeitoMaterializacao(){
+    private IEnumerator EfeitoMaterializacao()
+    {
         seMaterializando = true;
 
-        if(spriteRenderer != null){
+        if (spriteRenderer != null)
+        {
             Color cor = spriteRenderer.color;
             cor.a = alphaInicial;
             spriteRenderer.color = cor;
 
             float tempoDecorrido = 0f;
 
-            while(tempoDecorrido < tempoMaterializacao){
+            while (tempoDecorrido < tempoMaterializacao)
+            {
                 tempoDecorrido += Time.deltaTime;
                 cor.a = Mathf.Lerp(alphaInicial, 1.0f, tempoDecorrido / tempoMaterializacao);
                 spriteRenderer.color = cor;
@@ -172,7 +190,9 @@ public class ComportamentoFantasma : MonoBehaviour
 
             cor.a = 1.0f;
             spriteRenderer.color = cor;
-        }else{
+        }
+        else
+        {
             yield return new WaitForSeconds(tempoMaterializacao);
         }
 
@@ -180,35 +200,42 @@ public class ComportamentoFantasma : MonoBehaviour
         proximoTiroTempo = Time.time + tempoEntreTiros;
     }
 
-    void Update(){
-        if(escondidoNoVaso || dandoDash || seMaterializando || executandoChuvaFinal) return;
+    void Update()
+    {
+        if (escondidoNoVaso || dandoDash || seMaterializando || executandoChuvaFinal || estaInstavel) return;
 
-        if(!estaFugindo){
+        if (!estaFugindo)
+        {
             temporizadorLuta += Time.deltaTime;
 
-            // FASE 3: TOPO DA ARENA (Garante deixar o jogador com 1 de vida)
-            if(faseAtual >= 3){
+            if (faseAtual >= 3)
+            {
                 int vidaAtualJogador = GetVidaJogador();
 
-                if(vidaAtualJogador > 1){
+                if (vidaAtualJogador > 1)
+                {
                     StartCoroutine(SequenciaChuvaSemEspaco());
-                }else{
-                    // Jogador já está com 1 de vida -> Trovão final e foge para o vaso topo
+                }
+                else
+                {
                     IniciarFugaParaVaso();
                 }
                 return;
             }
 
-            // FASE 2: Sução -> Dashes -> Fuga Vaso Esquerda
-            if(faseAtual == 2){
-                if(temporizadorLuta >= tempoParaIniciarSucao && !estaSugando && temporizadorSucao < duracaoSucao){
+            if (faseAtual == 2)
+            {
+                if (temporizadorLuta >= tempoParaIniciarSucao && !estaSugando && temporizadorSucao < duracaoSucao)
+                {
                     estaSugando = true;
                 }
 
-                if(estaSugando){
+                if (estaSugando)
+                {
                     temporizadorSucao += Time.deltaTime;
-                    
-                    if(temporizadorSucao >= duracaoSucao){
+
+                    if (temporizadorSucao >= duracaoSucao)
+                    {
                         estaSugando = false;
                         StartCoroutine(ExecutarSequenciaDashes());
                         return;
@@ -216,40 +243,49 @@ public class ComportamentoFantasma : MonoBehaviour
                 }
             }
 
-            // FASE 1: Fuga Vaso Direita após tempo de combate
-            if(faseAtual == 1 && temporizadorLuta >= tempoParaTrovoada && vasoAtual != null){
+            if (faseAtual == 1 && temporizadorLuta >= tempoParaTrovoada && vasoAtual != null)
+            {
                 IniciarFugaParaVaso();
-            }else if(!estaSugando){
+            }
+            else if (!estaSugando)
+            {
                 AtualizarEixoY();
 
-                if(Time.time >= proximoTiroTempo && prefabProjetil != null && !estaAtirando){
+                if (Time.time >= proximoTiroTempo && prefabProjetil != null && !estaAtirando)
+                {
                     StartCoroutine(SequenciaTiro());
                 }
             }
-        }else{
+        }
+        else
+        {
             MoverParaVaso();
         }
     }
 
-    int GetVidaJogador(){
-        if(vidaJogadorScript != null){
-            // Usa Reflection leve para acessar vidaAtual sem precisar modificar a visibilidade
+    int GetVidaJogador()
+    {
+        if (vidaJogadorScript != null)
+        {
             var campoVida = typeof(VidaJogador).GetField("vidaAtual", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if(campoVida != null){
+            if (campoVida != null)
+            {
                 return (int)campoVida.GetValue(vidaJogadorScript);
             }
         }
         return 1;
     }
 
-    private IEnumerator SequenciaChuvaSemEspaco(){
+    private IEnumerator SequenciaChuvaSemEspaco()
+    {
         executandoChuvaFinal = true;
 
-        while(GetVidaJogador() > 1 && !estaFugindo){
+        while (GetVidaJogador() > 1 && !estaFugindo)
+        {
             Transform pontoSpawn = (pontoDisparoBaixo != null) ? pontoDisparoBaixo : transform;
 
-            // Instancia projéteis sem nenhum espaço seguro cobrindo a arena
-            for(float x = limiteArenaEsquerdaX; x <= limiteArenaDireitaX; x += espacamentoProjeteis){
+            for (float x = limiteArenaEsquerdaX; x <= limiteArenaDireitaX; x += espacamentoProjeteis)
+            {
                 Vector3 posicaoDisparo = new Vector3(x, pontoSpawn.position.y, pontoSpawn.position.z);
                 Instantiate(prefabProjetil, posicaoDisparo, Quaternion.Euler(0, 0, -90f));
             }
@@ -259,19 +295,56 @@ public class ComportamentoFantasma : MonoBehaviour
 
         executandoChuvaFinal = false;
 
-        // Ao atingir 1 de vida, inicia a trovoada para fugir
-        if(!estaFugindo){
+        if (!estaFugindo)
+        {
             IniciarFugaParaVaso();
         }
     }
 
-    void FixedUpdate(){
-        if(estaSugando && !estaFugindo && !escondidoNoVaso && !dandoDash && !seMaterializando && jogador != null && rbJogador != null){
+    public void IniciarInstabilidadeFinal()
+    {
+        estaInstavel = true;
+        estaSugando = false;
+        dandoDash = false;
+        estaFugindo = false;
+        executandoChuvaFinal = false;
+
+        if (colisorFantasma != null) colisorFantasma.enabled = false;
+        StartCoroutine(RotinaInstabilidade());
+    }
+
+    private IEnumerator RotinaInstabilidade()
+    {
+        while (estaInstavel)
+        {
+            float minX = (pontoLimiteEsquerda != null) ? pontoLimiteEsquerda.position.x : transform.position.x - 5f;
+            float maxX = (pontoLimiteDireita != null) ? pontoLimiteDireita.position.x : transform.position.x + 5f;
+
+            float novoX = Random.Range(minX, maxX);
+            float novoY = Random.Range(posicaoBaseY - 2f, posicaoBaseY + 3f);
+            transform.position = new Vector3(novoX, novoY, transform.position.z);
+
+            if (spriteRenderer != null)
+            {
+                Color cor = spriteRenderer.color;
+                cor.a = Random.Range(0.2f, 0.85f);
+                spriteRenderer.color = cor;
+            }
+
+            yield return new WaitForSeconds(tempoEntreTeleportes);
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (estaSugando && !estaFugindo && !escondidoNoVaso && !dandoDash && !seMaterializando && !estaInstavel && jogador != null && rbJogador != null)
+        {
             AplicarForcaSucao();
         }
     }
 
-    void AplicarForcaSucao(){
+    void AplicarForcaSucao()
+    {
         Vector2 direcao = (transform.position - jogador.position);
         float distancia = direcao.magnitude;
         Vector2 direcaoNormalizada = direcao.normalized;
@@ -279,49 +352,61 @@ public class ComportamentoFantasma : MonoBehaviour
         bool noAr = Mathf.Abs(rbJogador.linearVelocity.y) > 0.05f;
         bool segurandoA = Input.GetKey(KeyCode.A);
 
-        if(segurandoA && !noAr){
+        if (segurandoA && !noAr)
+        {
             rbJogador.linearVelocity = new Vector2(0f, rbJogador.linearVelocity.y);
             return;
         }
 
         float forcaFinal = forcaSucaoBase;
 
-        if(distancia <= distanciaPertoImpossivel){
+        if (distancia <= distanciaPertoImpossivel)
+        {
             forcaFinal *= multiplicadorPerto;
-        }else{
+        }
+        else
+        {
             forcaFinal *= (1f / Mathf.Max(distancia * 0.15f, 0.2f));
         }
 
-        if(noAr){
+        if (noAr)
+        {
             forcaFinal *= multiplicadorNoAr;
         }
 
         rbJogador.AddForce(direcaoNormalizada * forcaFinal, ForceMode2D.Force);
     }
 
-    private IEnumerator ExecutarSequenciaDashes(){
+    private IEnumerator ExecutarSequenciaDashes()
+    {
         dandoDash = true;
 
         float tempoCooldown = 0f;
-        while(tempoCooldown < cooldownPosSucao){
+        while (tempoCooldown < cooldownPosSucao)
+        {
             tempoCooldown += Time.deltaTime;
-            if(jogador != null){
+            if (jogador != null)
+            {
                 posicaoBaseY = Mathf.Lerp(posicaoBaseY, jogador.position.y, velocidadeSeguirY * Time.deltaTime);
                 transform.position = new Vector3(transform.position.x, posicaoBaseY, transform.position.z);
             }
             yield return null;
         }
 
-        for(int i = 0; i < quantidadeDashes; i++){
-            Transform destinoAtual = (i % 2 == 0) 
-                ? ((pontoLimiteEsquerda != null) ? pontoLimiteEsquerda : transform) 
+        for (int i = 0; i < quantidadeDashes; i++)
+        {
+            Transform destinoAtual = (i % 2 == 0)
+                ? ((pontoLimiteEsquerda != null) ? pontoLimiteEsquerda : transform)
                 : ((pontoLimiteDireita != null) ? pontoLimiteDireita : transform);
 
-            if(i > 0){
+            if (i > 0)
+            {
                 float tempoPerseguindo = 0f;
-                while(tempoPerseguindo < tempoSeguirPlayer){
+                while (tempoPerseguindo < tempoSeguirPlayer)
+                {
                     tempoPerseguindo += Time.deltaTime;
-                    if(jogador != null){
+                    if (jogador != null)
+                    {
                         posicaoBaseY = Mathf.Lerp(posicaoBaseY, jogador.position.y, velocidadeSeguirY * Time.deltaTime);
                         transform.position = new Vector3(transform.position.x, posicaoBaseY, transform.position.z);
                     }
@@ -331,15 +416,18 @@ public class ComportamentoFantasma : MonoBehaviour
 
             yield return new WaitForSeconds(tempoTravaPreDash);
 
-            while(Vector3.Distance(transform.position, new Vector3(destinoAtual.position.x, transform.position.y, transform.position.z)) > 0.3f){
+            while (Vector3.Distance(transform.position, new Vector3(destinoAtual.position.x, transform.position.y, transform.position.z)) > 0.3f)
+            {
                 float novoX = Mathf.MoveTowards(transform.position.x, destinoAtual.position.x, velocidadeDash * Time.deltaTime);
                 transform.position = new Vector3(novoX, transform.position.y, transform.position.z);
                 yield return null;
             }
         }
 
-        if(pontoLimiteDireita != null){
-            while(Vector3.Distance(transform.position, new Vector3(pontoLimiteDireita.position.x, transform.position.y, transform.position.z)) > 0.3f){
+        if (pontoLimiteDireita != null)
+        {
+            while (Vector3.Distance(transform.position, new Vector3(pontoLimiteDireita.position.x, transform.position.y, transform.position.z)) > 0.3f)
+            {
                 float novoX = Mathf.MoveTowards(transform.position.x, pontoLimiteDireita.position.x, velocidadeDash * Time.deltaTime);
                 transform.position = new Vector3(novoX, transform.position.y, transform.position.z);
                 yield return null;
@@ -350,21 +438,24 @@ public class ComportamentoFantasma : MonoBehaviour
         IniciarFugaParaVaso();
     }
 
-    void IniciarFugaParaVaso(){
+    void IniciarFugaParaVaso()
+    {
         estaFugindo = true;
         estaSugando = false;
-        
-        if(colisorFantasma != null) colisorFantasma.enabled = false;
-        if(painelPreto != null) StartCoroutine(EfeitoPiscarLuz());
+
+        if (colisorFantasma != null) colisorFantasma.enabled = false;
+        if (painelPreto != null) StartCoroutine(EfeitoPiscarLuz());
     }
 
-    private IEnumerator EfeitoPiscarLuz(){
+    private IEnumerator EfeitoPiscarLuz()
+    {
         float[] intervalos = new float[] { 0.05f, 0.05f, 0.08f, 0.1f, 0.2f, 0.4f, 0.7f };
 
-        for(int i = 0; i < intervalos.Length; i++){
+        for (int i = 0; i < intervalos.Length; i++)
+        {
             painelPreto.SetActive(true);
             yield return new WaitForSeconds(intervalos[i]);
-            
+
             painelPreto.SetActive(false);
             yield return new WaitForSeconds(intervalos[i]);
         }
@@ -372,54 +463,64 @@ public class ComportamentoFantasma : MonoBehaviour
         painelPreto.SetActive(false);
     }
 
-    void MoverParaVaso(){
-        if(vasoAtual == null) return;
+    void MoverParaVaso()
+    {
+        if (vasoAtual == null) return;
 
         transform.position = Vector3.MoveTowards(transform.position, vasoAtual.position, velocidadeCorridaVaso * Time.deltaTime);
 
-        if(Vector3.Distance(transform.position, vasoAtual.position) < 0.1f){
+        if (Vector3.Distance(transform.position, vasoAtual.position) < 0.1f)
+        {
             EntrarNoVaso();
         }
     }
 
-    void EntrarNoVaso(){
+    void EntrarNoVaso()
+    {
         estaFugindo = false;
         escondidoNoVaso = true;
 
-        if(scriptVasoAtual != null){
+        if (scriptVasoAtual != null)
+        {
             scriptVasoAtual.AtivarVaso();
         }
 
-        if(painelPreto != null) painelPreto.SetActive(false);
+        if (painelPreto != null) painelPreto.SetActive(false);
 
         faseAtual++;
         gameObject.SetActive(false);
     }
 
-    void OnDisable(){
+    void OnDisable()
+    {
         estaSugando = false;
         dandoDash = false;
         seMaterializando = false;
         executandoChuvaFinal = false;
-        if(painelPreto != null) painelPreto.SetActive(false);
+        estaInstavel = false;
+        if (painelPreto != null) painelPreto.SetActive(false);
     }
 
-    void AtualizarEixoY(){
-        if(estaAtirando && jogador != null){
+    void AtualizarEixoY()
+    {
+        if (estaAtirando && jogador != null)
+        {
             posicaoBaseY = Mathf.Lerp(posicaoBaseY, jogador.position.y, velocidadeSeguirY * Time.deltaTime);
         }
 
         transform.position = new Vector3(transform.position.x, posicaoBaseY, transform.position.z);
     }
 
-    private IEnumerator SequenciaTiro(){
+    private IEnumerator SequenciaTiro()
+    {
         estaAtirando = true;
 
         yield return new WaitForSeconds(0.2f);
 
         Transform pontoUsado = (faseAtual == 1) ? pontoDisparoFase1 : pontoDisparoFase2;
 
-        if(pontoUsado != null && prefabProjetil != null && !estaFugindo && !estaSugando && !dandoDash && !seMaterializando){
+        if (pontoUsado != null && prefabProjetil != null && !estaFugindo && !estaSugando && !dandoDash && !seMaterializando && !estaInstavel)
+        {
             Instantiate(prefabProjetil, pontoUsado.position, pontoUsado.rotation);
         }
 
@@ -429,10 +530,12 @@ public class ComportamentoFantasma : MonoBehaviour
         estaAtirando = false;
     }
 
-    private void ProcessarDano(GameObject objetoAtingido){
-        if(estaFugindo || escondidoNoVaso || seMaterializando) return;
+    private void ProcessarDano(GameObject objetoAtingido)
+    {
+        if (estaFugindo || escondidoNoVaso || seMaterializando || estaInstavel) return;
 
-        if(objetoAtingido.CompareTag("Player")){
+        if (objetoAtingido.CompareTag("Player"))
+        {
             objetoAtingido.SendMessage("TomarDano", danoContato, SendMessageOptions.DontRequireReceiver);
         }
     }
@@ -441,18 +544,22 @@ public class ComportamentoFantasma : MonoBehaviour
     private void OnTriggerStay2D(Collider2D outro) => ProcessarDano(outro.gameObject);
     private void OnCollisionEnter2D(Collision2D colisao) => ProcessarDano(colisao.gameObject);
 
-    public void TomarDano(int dano){
-        if(!jaBateu && !estaFugindo && !escondidoNoVaso && !seMaterializando){
+    public void TomarDano(int dano)
+    {
+        if (!jaBateu && !estaFugindo && !escondidoNoVaso && !seMaterializando && !estaInstavel)
+        {
             Debug.Log(mensagemAtaque);
             jaBateu = true;
-            
-            if(textoMensagem != null){
+
+            if (textoMensagem != null)
+            {
                 StartCoroutine(ExibirMensagemTela());
             }
         }
     }
 
-    private IEnumerator ExibirMensagemTela(){
+    private IEnumerator ExibirMensagemTela()
+    {
         textoMensagem.text = mensagemAtaque;
         textoMensagem.gameObject.SetActive(true);
 
