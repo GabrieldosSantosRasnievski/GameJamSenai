@@ -9,9 +9,9 @@ public class VidaJogador : MonoBehaviour
     public int vidaMaxima = 5;
     private int vidaAtual;
 
-    public Image[] coracoes;
-    public Sprite coracaoCheio;
-    public Sprite coracaoVazio;
+    [Header("UI da Barra de Vida")]
+    public Image barraDeVida;               // A imagem única da barra de vida no Canvas
+    public Sprite[] spritesVida;            // Array de sprites (Tamanho 6: do índice 0 ao 5)
 
     public float tempoInvencibilidade = 1.5f;
     private bool estaInvencivel = false;
@@ -23,23 +23,28 @@ public class VidaJogador : MonoBehaviour
     public GameObject painelGameOver;
     public TextMeshProUGUI textoMensagemStatus;
 
-    void Start(){
+    void Start()
+    {
         Time.timeScale = 1f;
         vidaAtual = vidaMaxima;
         
-        if(spriteJogador == null){
+        if (spriteJogador == null)
+        {
             spriteJogador = GetComponent<SpriteRenderer>();
         }
 
-        if(painelGameOver != null){
+        if (painelGameOver != null)
+        {
             painelGameOver.SetActive(false);
         }
 
         AtualizarUI();
     }
 
-    public void TomarDano(int dano){
-        if(estaInvencivel){
+    public void TomarDano(int dano)
+    {
+        if (estaInvencivel)
+        {
             return;
         }
 
@@ -48,19 +53,25 @@ public class VidaJogador : MonoBehaviour
 
         AtualizarUI();
 
-        if(vidaAtual <= 0){
+        if (vidaAtual <= 0)
+        {
             Morrer();
-        }else{
+        }
+        else
+        {
             StartCoroutine(RotinaInvencibilidade());
         }
     }
 
-    private IEnumerator RotinaInvencibilidade(){
+    private IEnumerator RotinaInvencibilidade()
+    {
         estaInvencivel = true;
         float tempoDecorridos = 0f;
 
-        while(tempoDecorridos < tempoInvencibilidade){
-            if(spriteJogador != null){
+        while (tempoDecorridos < tempoInvencibilidade)
+        {
+            if (spriteJogador != null)
+            {
                 spriteJogador.enabled = !spriteJogador.enabled;
             }
             
@@ -68,34 +79,33 @@ public class VidaJogador : MonoBehaviour
             tempoDecorridos += tempoPisca;
         }
 
-        if(spriteJogador != null){
+        if (spriteJogador != null)
+        {
             spriteJogador.enabled = true;
         }
 
         estaInvencivel = false;
     }
 
-    void AtualizarUI(){
-        for(int i = 0; i < coracoes.Length; i++){
-            if(i < vidaAtual){
-                coracoes[i].sprite = coracaoCheio;
-                coracoes[i].enabled = true;
-            }else if(coracaoVazio != null){
-                coracoes[i].sprite = coracaoVazio;
-            }else{
-                coracoes[i].enabled = false;
-            }
+    void AtualizarUI()
+    {
+        // Garante que o Sprite seja alterado de acordo com o valor exato da vidaAtual
+        if (barraDeVida != null && spritesVida != null && spritesVida.Length > vidaAtual)
+        {
+            barraDeVida.sprite = spritesVida[vidaAtual];
         }
     }
 
-    void Morrer(){
+    void Morrer()
+    {
         Debug.Log("O jogador morreu!");
 
         // Busca o script do Fantasma para saber em qual fase ele parou
         ComportamentoFantasma fantasma = FindObjectOfType<ComportamentoFantasma>();
         int faseAtualDoBoss = (fantasma != null) ? fantasma.faseAtual : 1;
 
-        if(painelGameOver != null){
+        if (painelGameOver != null)
+        {
             painelGameOver.SetActive(true);
             ExibirMensagemStatus(faseAtualDoBoss);
         }
@@ -104,9 +114,12 @@ public class VidaJogador : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    void ExibirMensagemStatus(int faseBoss){
-        if(textoMensagemStatus != null){
-            switch(faseBoss){
+    void ExibirMensagemStatus(int faseBoss)
+    {
+        if (textoMensagemStatus != null)
+        {
+            switch (faseBoss)
+            {
                 case 1:
                     textoMensagemStatus.text = "Passou longe!"; // Morreu antes de quebrar o Vaso 1
                     break;
@@ -123,12 +136,14 @@ public class VidaJogador : MonoBehaviour
         }
     }
 
-    public void ReiniciarCena(){
+    public void ReiniciarCena()
+    {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    public void CarregarProximaCena(){
+    public void CarregarProximaCena()
+    {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }

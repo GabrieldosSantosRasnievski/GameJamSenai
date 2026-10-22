@@ -1,17 +1,27 @@
 using UnityEngine;
 using System.Collections;
 
-public class Movimento2D : MonoBehaviour
+public class Movimentacao2D : MonoBehaviour
 {
+    [SerializeField] private float velocidadeMovimento = 8f;
+    [SerializeField] private float forcaDoPulo = 12f;
+    [SerializeField] private Transform verificadorDeChao;
+    [SerializeField] private LayerMask oQueEChao;
+    [SerializeField] private float raioVerificacao = 0.2f;
     private Rigidbody2D rb;
+<<<<<<< HEAD
     public float velocidadeMovimento = 8f;
     private float velocidadeAtual;
     private float entradaHorizontal;
     private bool olhandoParaDireita = true;
 
-    [Header("Mec�nica de Lentid�o")]
-    public float multiplicadorLentidao = 0.5f; // Reduz a velocidade pela metade (50%)
-    public float duracaoLentidao = 5f;          // Dura��o de 5 segundos
+    [Header("Mecânica de Sução / Física Externa")]
+    public bool sendoSugado = false;
+    public float forcaControleNoArESucao = 25f;
+
+    [Header("Mecânica de Lentidão")]
+    public float multiplicadorLentidao = 0.5f;
+    public float duracaoLentidao = 5f;
     private Coroutine corrotinaLentidao;
 
     public float forcaPulo = 12f;
@@ -50,7 +60,7 @@ public class Movimento2D : MonoBehaviour
 
         VerificarVirada();
 
-        // CHECAGEM RIGOROSA DE CH�O
+        // CHECAGEM RIGOROSA DE CHÃO
         if (checadorChao != null)
         {
             if (rb.linearVelocity.y > 0.01f)
@@ -106,7 +116,25 @@ public class Movimento2D : MonoBehaviour
 
     void FixedUpdate()
     {
-        rb.linearVelocity = new Vector2(entradaHorizontal * velocidadeAtual, rb.linearVelocity.y);
+        if (sendoSugado)
+        {
+            // Permite acumular a força da sução sem zerar a velocidade horizontal do Rigidbody2D
+            Vector2 forcaEntrada = new Vector2(entradaHorizontal * forcaControleNoArESucao, 0f);
+            rb.AddForce(forcaEntrada, ForceMode2D.Force);
+
+            // Trava a velocidade máxima de caminhada do jogador quando se move na direção oposta/a favor
+            float velocidadeXLimitada = Mathf.Clamp(rb.linearVelocity.x, -velocidadeAtual * 2f, velocidadeAtual * 2f);
+            rb.linearVelocity = new Vector2(velocidadeXLimitada, rb.linearVelocity.y);
+        }
+        else
+        {
+            rb.linearVelocity = new Vector2(entradaHorizontal * velocidadeAtual, rb.linearVelocity.y);
+        }
+    }
+
+    public void SetSendoSugado(bool valor)
+    {
+        sendoSugado = valor;
     }
 
     public void AplicarLentidaoNoPlayer()
@@ -201,6 +229,38 @@ public class Movimento2D : MonoBehaviour
         {
             Gizmos.color = Color.blue;
             Gizmos.DrawWireSphere(pontoAtaque.position, raioAtaque);
+=======
+    private float movimentacaoHorizontal;
+    private bool estaNoChao;
+
+    private void Start(){
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    private void Update(){
+        movimentacaoHorizontal = Input.GetAxisRaw("Horizontal");
+        if (verificadorDeChao != null){
+            estaNoChao = Physics2D.OverlapCircle(verificadorDeChao.position, raioVerificacao, oQueEChao);
+        }
+
+        if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) && estaNoChao){
+            Pular();
+        }
+    }
+
+    private void FixedUpdate(){
+        rb.linearVelocity = new Vector2(movimentacaoHorizontal * velocidadeMovimento, rb.linearVelocity.y);
+    }
+
+    private void Pular(){
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, forcaDoPulo);
+    }
+
+    private void OnDrawGizmosSelected(){
+        if (verificadorDeChao != null){
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(verificadorDeChao.position, raioVerificacao);
+>>>>>>> parent of a541cc6 (acho que ficou bom)
         }
     }
 }

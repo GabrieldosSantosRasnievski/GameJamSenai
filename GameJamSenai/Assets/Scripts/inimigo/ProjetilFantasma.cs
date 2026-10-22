@@ -8,13 +8,15 @@ public class ProjetilFantasma : MonoBehaviour
     public int dano = 1;
 
     [Header("Efeito de Debuff")]
-    public float multiplicadorLentidao = 0.5f; // 50% da velocidade normal
-    public float duracaoLentidao = 5f;          // 5 segundos de duração
+    public float multiplicadorLentidao = 0.5f;
+    public float duracaoLentidao = 5f;
 
     private Vector3 direcaoMovimento = Vector3.right;
+    private SpriteRenderer spriteRenderer;
 
     void Start()
     {
+        spriteRenderer = GetComponent<SpriteRenderer>();
         ComportamentoFantasma fantasma = FindObjectOfType<ComportamentoFantasma>();
 
         if (fantasma != null)
@@ -37,7 +39,27 @@ public class ProjetilFantasma : MonoBehaviour
             direcaoMovimento = transform.right;
         }
 
+        AjustarOrientacao();
         StartCoroutine(MoverEDestruir());
+    }
+
+    void AjustarOrientacao()
+    {
+        if (direcaoMovimento == Vector3.left)
+        {
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.flipX = true;
+            }
+            else
+            {
+                transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            }
+        }
+        else if (direcaoMovimento == Vector3.down)
+        {
+            transform.rotation = Quaternion.Euler(0, 0, -90f);
+        }
     }
 
     private IEnumerator MoverEDestruir()
@@ -58,10 +80,8 @@ public class ProjetilFantasma : MonoBehaviour
     {
         if (outro.CompareTag("Player"))
         {
-            // 1. Aplica o Dano via SendMessage (funciona em qualquer script de vida)
             outro.SendMessage("TomarDano", dano, SendMessageOptions.DontRequireReceiver);
 
-            // 2. Busca o script Movimento2D na hierarquia (objeto atual ou pai)
             Movimento2D movimentoPlayer = outro.GetComponentInParent<Movimento2D>();
 
             if (movimentoPlayer != null)
@@ -70,7 +90,6 @@ public class ProjetilFantasma : MonoBehaviour
             }
             else
             {
-                // Fallback caso o script esteja em outro nível da hierarquia
                 outro.SendMessageUpwards("AplicarLentidaoNoPlayer", SendMessageOptions.DontRequireReceiver);
             }
 
